@@ -1,2 +1,2 @@
 # kangaroo-kiwi
-Materials for the analysis of kangaroo-kiwi replication, under review 2020
+Materials for the analysis of kangaroo-kiwi replication, under review 2022
