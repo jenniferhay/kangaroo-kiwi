@@ -1,0 +1,350 @@
+---
+title: 'Social priming in speech perception: revisiting Kangaroo/Kiwi priming in New
+  Zealand English'
+author: "Gia Hurring, Jen Hay, Katie Drager, Ryan Podlubny, Laura Manhire, Alix Ellis"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  word_document: default
+  html_document: default
+subtitle: 'Supplementary materials - R code for models and plots'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Document outline
+
+This document provides the code used in the analyses of the Hurring, Hay, Drager, Podlubny, Manhire, and Ellis (2022) manuscript, submitted to Brain Sciences. It contains the various analysis steps reported in the paper.  Access to the data files are found in the same folder as this file. As described in the manuscript, the data was collected from two online lexical decision tasks, and extracted from Google's Firebase console.
+
+# Install and load libraries
+
+The following libraries need to be installed and loaded into the Rmd to run the code below.
+
+```{r}
+library(tidyverse) #various functions
+library(DT) #
+library(effects) #plots models
+library(lme4) #runs linear regression models
+library(rjson) #reads JSON files
+library(standardize) #
+library(rms) #
+library(sjPlot) #plots
+library(dplyr) #various functions
+```
+
+# EXPERIMENT ONE
+
+## Data
+
+Read in the data. This is the coded and tidy version, with outliers removed.
+
+```{r}
+exp1data = read.csv("exp1-coded-data.csv")
+exp1data$vowelheard = as.factor(exp1data$vowelheard)
+exp1data$block = as.factor(exp1data$block)
+
+# terminology
+exp1data$frame = exp1data$stimulustype
+exp1data <- exp1data %>%
+  mutate(frame = recode_factor(frame, targetdressreal = "DRESS", targetkitreal = "KIT")) %>%
+  mutate(firstanimal = recode_factor(firstanimal, horse1 = "horse", kanga="kanga", kiwi = "kiwi"))
+
+```
+
+Early modeling of experiment 1 revealed speaker intercepts lead to convergence issues, and explained little variance, so they were dropped. All models have intercepts for participant and word.
+
+Here is the syntax for the preregistered version:
+
+```{r, eval = FALSE}
+
+PREMODELSTARTINGPOINT = glmer(vowelheard ~ scaledorderwithin * block +  frame * animal * presentationtype + (1 | id) + (1 | word), family = "binomial", data = exp1data[exp1data$condition == "prime",])
+
+PREMODELFINAL = glmer(vowelheard ~ scaledorderwithin + block  + presentationtype*frame + (1 | id) + (1 | word), family = "binomial", data = exp1data[exp1data$condition == "prime",])
+```
+This shows an effect of presentationtype, in interaction with frame.There are more KIT-consistent responses when animals are incidental than when they are speaking.  The important thing, though, is that the animal itself is not significant.  Moreover, exploratory analysis reveals that the first animal seen seems to have a lasting effect, and this model is obscuring important structure.  We therefore turn to a modelling procedure that is sensitive to block differences.
+
+Exploratory modeling revealed there was a strong effect of the animal shown in the first prime block, that persisted into the other block (for example modeling the blocks separately gives effects of 'animal' in block 1 but not block 2 or block 3.  The strongest effect on block 2 and 3 seemed to be the first animal seen). To test effects of 'animal' and 'first animal' systematically, we created a binary factor for whether the participant was in the first block or not, then fit down from the following model:
+
+```{r, eval=FALSE}
+exp1initialmodel = glmer(vowelheard ~ primetype * presentationtype * (firstblock +frame+scaledorderwithin) + firstanimal * presentationtype * (firstblock  +frame+scaledorderwithin) + (1 + frame| id) + (1 | word), family = "binomial", data = exp1data$condition == "baseline",)
+
+```
+
+We removed interactions and tested the effect of the removal by comparison between minimally different models. 
+
+We fit a model of this structure for the baseline people and the prime people separately.
+
+
+## Baseline
+
+Here is the final model arrived at for the baseline data.  The effects of primetype, and of the firstanimal seen, are removed from the model as they have no significant effect.
+
+
+```{r}
+
+EXP1FINALBASELINEMODEL = glmer(vowelheard ~ firstblock+ frame + (1 + frame | id) + (1 | word), family = "binomial", data = exp1data[exp1data$condition == "baseline",])
+```
+
+
+Table of effects:
+```{r}
+summary(EXP1FINALBASELINEMODEL)
+```
+
+Figure from baseline model
+
+```{r}
+
+exp1baselineplot <- plot_model(EXP1FINALBASELINEMODEL, type = "eff", terms = c("firstblock", "frame")) +
+  ylab("Predicted percent heard KIT")+
+  xlab("firstblock")+
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+
+exp1baselineplot
+```
+
+
+
+##Prime data
+
+Here is the final model arrived at for the prime data.
+
+
+```{r}
+
+
+FINALPRIMEMODEL = glmer(vowelheard ~ firstblock + scaledorderwithin + frame * firstanimal + (1  | id) + (1 | word), family = "binomial", data = exp1data[exp1data$condition == "prime",])
+```
+
+Summary (Table 4 in paper ):
+```{r}
+summary(FINALPRIMEMODEL)
+```
+
+Interaction Plot (Figure 5 in paper)
+```{r}
+figure5<- plot_model(FINALPRIMEMODEL, type = "eff", terms = c("frame", "firstanimal")) +
+  ylab("Predicted KIT-consistent response")+
+  xlab("Frame")+
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+
+figure5
+```
+
+
+
+
+## Summary of experiment 1:
+
+- There is no difference between the three horses.
+- There is an effect of which of the horse/kangaroo/kiwi was seen in the first block, which persists through the experiment.
+- This effect is within words where the DRESS vowel creates a real word.  Words where KIT creates a real word are approaching ceiling, and are not affected by the prime.
+- Interactions involving presentationtype are retained without the 'frame' slope, but don't converge.  The frame slope leads presentationtype to be non-significant, but also leads to lack of convergence.  To double check a role of presentation type, we therefore also fit separate models to the KIT and DRESS data, testing for an interaction between presentation type and the first animal seen.  There is no effect. 
+- There is not a wide distribution of social characteristics (Australian attitudes and Australian exposure) and since we are already deviating significantly from our preregistration, we decided not to test these in this data-set, but rather to obtain a new data-set that would resolve some apparent problems with the experimental design. Assuming the design issues are rectified, we can look for social characteristics in the 2nd experiment.
+
+In sum, there is good cause to believe the animal priming is having an effect, but it is also desirable to replicate this in a design that removes the blocked design, and the strong bias towards KIT.
+
+
+
+# EXPERIMENT TWO
+
+
+## Read in data
+
+```{r}
+exp2target = read.csv("exp2target.csv")
+exp2target$stimulustype = as.factor(exp2target$stimulustype)
+exp2target$vowelheard = as.factor(exp2target$vowelheard)
+
+targetKIT = filter(exp2target, stimulustype == "targetkitreal")
+targetDRESS = filter(exp2target, stimulustype == "targetdressreal")
+exp2target$frame = exp2target$stimulustype
+exp2target <- exp2target %>%
+  mutate(frame = recode_factor(frame, targetdressreal = "DRESS", targetkitreal = "KIT")) %>%
+  mutate(primetype = recode_factor(primetype, horse1 = "horse", kanga="kanga", kiwi = "kiwi"))
+
+```
+
+# Main model, no social effects (section 4.3.1)
+
+Fitting down from a four way interaction, as described in the main text, we end up with this model.
+
+```{r}
+exp2final = glmer(vowelheard ~ primetype * order_scaled * frame  + (1 | id) + (1 | word), family = "binomial", data = exp2target)
+```
+
+Table 6 summary:
+
+```{r}
+summary(exp2final)
+```
+
+Figure 6 plot:
+
+```{r}
+exp2plot <- plot_model(exp2final, type = "eff", terms = c("order_scaled", "primetype", "frame")) +
+  ylab("Predicted percent heard KIT")+
+  xlab("Order") +
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+exp2plot
+```
+
+
+# Social Factors (as reported in 4.3.2)
+
+
+# Description of process
+
+There were problems with getting convergent models with this analysis, and there are 4 way interactions.  Here is the process we ultimately followed to try and understand the patterns in the data. First, we modeled the two vowel types separately: 
+
+## Step 1
+We started with models of this structure, pruning down and checking anovas as we went. 
+
+```{r, eval=FALSE}
+exp1KITmodel = glmer(vowelheard ~ primetype * presentationtype * order_scaled * (Gender + agelist + attitudemean + ausoveramonth) + (1 | id) + (1 | word), family = "binomial", data = targetKIT)
+```
+
+and the same for DRESS.
+
+The reason we started with this was because primetype x presentationtype was in the experimental design, and we wanted to see how this interacted with social characteristics.   Early exploration also showed a very important effect of order, so we wanted to maintain the possibility that the timecourse was different for different social groups.  We did not have enough data to look at interactions between social factors.
+
+Through this process, we arrived at a model that was this
+
+```{r}
+exp2KITmodelb = glmer(vowelheard ~ primetype * presentationtype * order_scaled
+* Gender + (1 | id) + (1 | word), family = "binomial", data = targetKIT)
+
+```
+
+Similarly for DRESS.
+
+This was significantly better than an equivalent model that retained all three way interactions between these components, however it did not converge. So we need to explore this 4 way interaction in a way that can get convergence.
+
+## Step 2
+To explore this further, and try and get convergent models, we then fit separate models for men and women.  For women, the best model dropped presentation type completely, and retained a simple interaction between order and primetype.   For men, the model with the three way interaction was better than a model with 2 way interactions by an anova comparison, but still did not converge.   Removing the three way interaction makes the model converge, and also shows no residual effect of presentation type.  We therefore remove presentationtype from the model, concluding that we do not have sufficient data to reliably assess this 3 way interaction between presentation type, order, and primetype for men.  Only 5 men, for example saw the horse in incidental mode, and only 6 saw the kangaroo speaking.  We simply have more men than women.
+
+This left us with four separate models for men and women, for KIT and DRESS,  each showing a significant effect of order * prime type.    We note that if we try to return to an overall model and examine order * primetype * Gender, this appears significant, but also does not converge.  Again, this is no doubt due to data sparcity for men as compared to women.  It is certainly the case that the women's data is more reliable.
+
+In sum:  What we definitely have at this stage is a robust order x primetype effect in both groups.
+
+## Step 3
+
+Since the resultant models for men and for women did not look markedly different for KIT and DRESS, we then combined these back into a single model for each of men and women.   For both men and women we end up with interactions between order, stimulustype and primetype in convergent models. 
+
+## Step 4.
+
+Our initial modelling didn't test interactions between social factors, since that would lead to complex interactions.  But now we have relatively simple models, and they are separate for men and women, allowing us to test, within men and women, whether social factors play any role.  The starting point for this exploration was:
+
+```{r, eval=FALSE}
+womenbothsocial = glmer(vowelheard ~ (primetype + order_scaled + stimulustype)^3 * (agelist + attitudemean + ausoveramonth)  +  (1 | id) + (1 | word), family = "binomial", data = exp2target[exp2target$Gender == " woman",])
+```
+
+(and same for men)
+
+For men, all of the social characteristics fall out and we are back where we were at the end of step 3.
+For women, lots of the social characteristics appear to play a role, but we have non-convergent models.  We abandon a 'step down' model and test possible 3 way interactions involving the new social characteristics in a step up fashion.  Many don't converge, but we have two three way interactions that will converge:  attitude x stimtype x primetype and ausoveramonth x stimtype x primetype.   They won't converge in the same model as each other, and the interaction with ausoveramonth is much stronger. So we prune down the attitude interaction in order to get a convergent model.
+
+## Step 5
+As a final step we removed the horse from our final models to check that the horse wasn't driving the significance we saw.  It wasn't for the men.  It was for one of the interactions for the women (order x primetype).
+
+## SUMMARY
+These are our final two Exp 2 models.  
+
+```{r}
+menfinalmodel = glmer(vowelheard ~ (primetype + order_scaled + frame)^2  +  (1 | id) + (1 | word), family = "binomial", data = exp2target[exp2target$Gender == " man",])
+
+womenfinalmodel = glmer(vowelheard ~ primetype * order_scaled +primetype * frame * ausoveramonth + (1 | id) + (1 | word), family = "binomial", data = exp2target[exp2target$Gender == " woman",])  
+                
+```
+
+Model summaries:
+```{r}
+summary(menfinalmodel)
+
+summary(womenfinalmodel)
+```
+
+
+These are the plots for figure 7 and figure 8:
+
+```{r}
+
+Exp2plotwomen1 <- plot_model(womenfinalmodel, type = "eff", terms = c("order_scaled", "primetype")) +
+  ylab("Predicted percent heard KIT")+
+  xlab("Scaled Order in Experiment") +
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+
+
+Exp2plotwomen2 <- plot_model(womenfinalmodel, type = "eff", terms = c("ausoveramonth", "primetype", "frame")) +
+  ylab("Predicted percent heard KIT")+
+  xlab("Aus over a month") +
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+
+Exp2plotwomen1 
+Exp2plotwomen2
+```
+
+```{r}
+
+Exp2plotmen1 <- plot_model(menfinalmodel, type = "eff", terms = c("order_scaled", "primetype", "frame")) +
+  ylab("Predicted percent heard KIT")+
+  xlab("Scaled Order in Experiment") +
+  theme(legend.text = element_text(size=14, face="bold"))+
+  theme(legend.title = element_text(size=14, face="bold"))+
+  theme(axis.text = element_text(size=14))+
+  theme(axis.title.x = element_text(size=16, face="bold")) +
+  theme(axis.title.y = element_text(size=16, face="bold")) +
+  theme(strip.text.x = element_text(size=16, face="bold")) +
+  ggtitle(" ") +
+  aes(linetype=group, color=group) +
+  geom_line(size = 1.5) +
+  theme(plot.title = element_text(size=16, face="bold", hjust = 0.5))
+Exp2plotmen1
+```
+
