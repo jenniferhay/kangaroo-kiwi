@@ -4,7 +4,6 @@ Materials for the analysis of kangaroo-kiwi replication,  in press Brain Science
 Social Priming in Speech Perception: Revisiting Kangaroo/Kiwi Priming in New Zealand English.
 Gia Hurring, Jen Hay, Katie Drager, Ryan Podlubny, Laura Manhire and Alix Ellis.
 
-*	Correspondence: author: gia.hurring@pg.canterbury.ac.nz
 
 - Final manuscript: brainsci-hurring2022.pdf
 
@@ -13,3 +12,6 @@ Gia Hurring, Jen Hay, Katie Drager, Ryan Podlubny, Laura Manhire and Alix Ellis.
 - Rmd of supplementary materials: SupplementMaterials_BrainSciences.Rmd
 
 - Data files: exp1-coded-data.csv / exp2target.csv
+
+
+*	Correspondence: author: gia.hurring@pg.canterbury.ac.nz
