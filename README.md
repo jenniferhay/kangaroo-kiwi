@@ -6,7 +6,10 @@ Gia Hurring, Jen Hay, Katie Drager, Ryan Podlubny, Laura Manhire and Alix Ellis.
 
 *	Correspondence: author: gia.hurring@pg.canterbury.ac.nz
 
-Final manuscript: brainsci-hurring2022.pdf
-Compiled html of supplementary materials:  SupplementMaterials_BrainSciences.html
-Rmd of supplementary materials: SupplementMaterials_BrainSciences.Rmd
-Data files: exp1-coded-data.csv / exp2target.csv
+- Final manuscript: brainsci-hurring2022.pdf
+
+- Compiled html of supplementary materials:  SupplementMaterials_BrainSciences.html
+
+- Rmd of supplementary materials: SupplementMaterials_BrainSciences.Rmd
+
+- Data files: exp1-coded-data.csv / exp2target.csv
